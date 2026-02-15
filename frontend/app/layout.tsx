@@ -1,22 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 import { Toaster } from "sonner";
 import {
   ClerkProvider,
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton,
 } from "@clerk/nextjs";
-
-import "@/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const _jetbrainsMono = JetBrains_Mono({
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -24,6 +22,7 @@ export const metadata: Metadata = {
   description:
     "A lightweight GHL-inspired CRM for opportunity and pipeline management",
 };
+
 
 export default function RootLayout({
   children,
@@ -36,7 +35,7 @@ export default function RootLayout({
       <html lang="en" className="dark" suppressHydrationWarning>
         {/* Apply your font variables to the body */}
         <body
-          className={`${_inter.variable} ${_jetbrainsMono.variable} antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           <ThemeProvider
             attribute="class"
