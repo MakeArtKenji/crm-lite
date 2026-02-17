@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 function FloatingCard({
   children,
@@ -50,18 +52,7 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-20 text-center lg:pt-32">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/50 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm"
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          Now in public beta
-        </motion.div>
-
+      <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 pt-18text-center lg:pt-30">
         {/* Headline */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -92,15 +83,25 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-10 flex flex-col items-center gap-4 sm:flex-row"
         >
-          <Button size="lg" className="gap-2 px-8 text-base">
-            Try CRM Lite
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="gap-2 px-8 text-base"
-          >
+          <SignedOut>
+            <SignUpButton>
+              <Button size="lg" className="gap-2 px-8 text-base">
+                Try CRM Lite
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </SignUpButton>
+          </SignedOut>
+
+          <SignedIn>
+            <Link href="/dashboard">
+              <Button size="lg" className="gap-2 px-8 text-base">
+                Dashboard
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </SignedIn>
+
+          <Button variant="outline" size="lg" className="gap-2 px-8 text-base">
             <Play className="h-4 w-4" />
             View Workflow Demo
           </Button>

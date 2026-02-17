@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Menu, X } from "lucide-react";
+import { Zap, Menu, X} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -44,10 +46,28 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" className="text-muted-foreground">
-            Log in
-          </Button>
-          <Button size="sm">Try CRM Lite</Button>
+          <SignedOut>
+            <SignInButton>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+              >
+                Log in
+              </Button>
+            </SignInButton>
+            <SignUpButton>
+              <Button size="sm">Try CRM Lite</Button>
+            </SignUpButton>
+          </SignedOut>
+
+          <SignedIn>
+            <Link href="/dashboard">
+              <Button size="sm" >
+                Dashboard
+              </Button>
+            </Link>
+          </SignedIn>
         </div>
 
         <button
@@ -55,7 +75,11 @@ export function Navbar() {
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </button>
       </nav>
 
