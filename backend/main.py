@@ -46,6 +46,16 @@ def create_user(user_data: UserCreate, session: Session = Depends(get_session)):
 def get_opps(session: Session = Depends(get_session)):
     return session.exec(select(Opportunity)).all()
 
+@app.get("/opportunities/{opportunity_id}", response_model=Opportunity)
+def get_opportunity(opportunity_id: int, session: Session = Depends(get_session)):
+    # session.get is the "fast way" to find a single row by primary key
+    db_opp = session.get(Opportunity, opportunity_id)
+    
+    if not db_opp:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+        
+    return db_opp
+
 @app.post("/opportunities", response_model=Opportunity)
 def create_opportunity(opp_data: OpportunityCreate, session: Session = Depends(get_session)):
     # Check if user exists

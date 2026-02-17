@@ -42,7 +42,7 @@ OPPORTUNITY:
 - Email: ${opportunity.email}
 - Status: ${opportunity.status}
 - Value: $${opportunity.value.toLocaleString()}
-- Created: ${new Date(opportunity.createdAt).toLocaleDateString()}
+- Created: ${new Date(opportunity.created_at).toLocaleDateString()}
 
 INTERACTION HISTORY:
 ${interactionHistory}

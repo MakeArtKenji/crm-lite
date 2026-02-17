@@ -9,8 +9,8 @@ export type Opportunity = {
   email: string
   status: OpportunityStatus
   value: number
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
 }
 
 export type InteractionType = "Phone Call" | "Email Sent" | "Meeting Notes" | "Custom Note"
@@ -37,8 +37,8 @@ const store: Store = {
       email: "john@email.com",
       status: "Contacted",
       value: 1200,
-      createdAt: "2026-01-15T10:00:00Z",
-      updatedAt: "2026-02-01T14:30:00Z",
+      created_at: "2026-01-15T10:00:00Z",
+      updated_at: "2026-02-01T14:30:00Z",
     },
     {
       id: "opp_2",
@@ -46,17 +46,17 @@ const store: Store = {
       email: "jane@company.com",
       status: "New",
       value: 4500,
-      createdAt: "2026-02-05T09:00:00Z",
-      updatedAt: "2026-02-05T09:00:00Z",
+      created_at: "2026-02-05T09:00:00Z",
+      updated_at: "2026-02-05T09:00:00Z",
     },
     {
       id: "opp_3",
       name: "Acme Corp",
       email: "deals@acme.com",
-      status: "Follow-Up",
+      status: "Follow-Up",  
       value: 12000,
-      createdAt: "2026-01-20T11:00:00Z",
-      updatedAt: "2026-02-10T16:00:00Z",
+      created_at: "2026-01-20T11:00:00Z",
+      updated_at: "2026-02-10T16:00:00Z",
     },
     {
       id: "opp_4",
@@ -64,8 +64,8 @@ const store: Store = {
       email: "sarah@startup.io",
       status: "Won",
       value: 8500,
-      createdAt: "2025-12-10T08:00:00Z",
-      updatedAt: "2026-01-30T12:00:00Z",
+      created_at: "2025-12-10T08:00:00Z",
+      updated_at: "2026-01-30T12:00:00Z",
     },
     {
       id: "opp_5",
@@ -73,8 +73,8 @@ const store: Store = {
       email: "bob@enterprise.co",
       status: "Lost",
       value: 3200,
-      createdAt: "2026-01-05T15:00:00Z",
-      updatedAt: "2026-02-08T10:00:00Z",
+      created_at: "2026-01-05T15:00:00Z",
+      updated_at: "2026-02-08T10:00:00Z",
     },
   ],
   interactions: [
@@ -151,24 +151,24 @@ export function findOpportunity(id: string): Opportunity | undefined {
   return store.opportunities.find((o) => o.id === id)
 }
 
-export function createOpportunity(data: Omit<Opportunity, "id" | "createdAt" | "updatedAt">): Opportunity {
+export function createOpportunity(data: Omit<Opportunity, "id" | "created_at" | "updated_at">): Opportunity {
   const opportunity: Opportunity = {
     ...data,
     id: `opp_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
   store.opportunities.push(opportunity)
   return opportunity
 }
 
-export function updateOpportunity(id: string, data: Partial<Omit<Opportunity, "id" | "createdAt">>): Opportunity | undefined {
+export function updateOpportunity(id: string, data: Partial<Omit<Opportunity, "id" | "created_at">>): Opportunity | undefined {
   const index = store.opportunities.findIndex((o) => o.id === id)
   if (index === -1) return undefined
   store.opportunities[index] = {
     ...store.opportunities[index],
     ...data,
-    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
   return store.opportunities[index]
 }

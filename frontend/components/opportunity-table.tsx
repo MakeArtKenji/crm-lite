@@ -83,7 +83,7 @@ export function OpportunityTable({ opportunities, onEdit, onDeleted }: Props) {
                 ${opp.value.toLocaleString()}
               </TableCell>
               <TableCell className="text-right text-sm text-muted-foreground">
-                {new Date(opp.updatedAt).toLocaleDateString()}
+                {new Date(opp.updated_at).toLocaleDateString()}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
