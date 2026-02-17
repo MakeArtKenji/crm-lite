@@ -1,15 +1,19 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import select, Session
 from typing import List
+from google import genai  # Use the new unified SDK
 from database import create_db_and_tables, get_session
-# Import the new 'Create' models
+import os  # Essential for API keys
 from models import (
     Opportunity, OpportunityCreate, OpportunityUpdate,
     User, UserCreate, 
-    Interaction, InteractionCreate, InteractionUpdate
+    Interaction, InteractionCreate, InteractionUpdate, 
+    ChatRequest, ChatResponse
 )
 
 app = FastAPI()
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 @app.on_event("startup")
 def on_startup():
@@ -139,3 +143,23 @@ def delete_interaction(interaction_id: int, session: Session = Depends(get_sessi
     session.delete(db_int)
     session.commit()
     return {"ok": True, "message": f"Interaction {interaction_id} deleted"}
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_ai(request: ChatRequest):
+    """
+    AI Chat using the latest Gemini 3 Flash model.
+    """
+    try:
+        # Note the updated syntax for the unified SDK
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=request.message
+        )
+        
+        if not response.text:
+            raise HTTPException(status_code=500, detail="AI failed to generate a response.")
+            
+        return ChatResponse(response=response.text)
+    except Exception as e:
+        # Helpful for debugging API key or connection issues
+        raise HTTPException(status_code=500, detail=str(e))

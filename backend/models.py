@@ -61,3 +61,10 @@ class InteractionCreate(InteractionBase):
 class InteractionUpdate(SQLModel):
     type: Optional[str] = None
     notes: Optional[str] = None
+
+# models.py snippet
+class ChatRequest(SQLModel):
+    message: str
+
+class ChatResponse(SQLModel):
+    response: str
