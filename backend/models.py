@@ -37,6 +37,12 @@ class Opportunity(OpportunityBase, table=True):
 class OpportunityCreate(OpportunityBase):
     pass # No ID, created_at, or updated_at here!
 
+class OpportunityUpdate(SQLModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    status: Optional[str] = None
+    value: Optional[float] = None
+
 # --- INTERACTION MODELS ---
 class InteractionBase(SQLModel):
     type: str # "Phone Call" | "Email Sent" | "Meeting Notes" | "Custom Note"
@@ -51,3 +57,7 @@ class Interaction(InteractionBase, table=True):
 
 class InteractionCreate(InteractionBase):
     pass # No ID or timestamp here!
+
+class InteractionUpdate(SQLModel):
+    type: Optional[str] = None
+    notes: Optional[str] = None
