@@ -1,9 +1,12 @@
 from sqlmodel import Session, select
 from database import engine
-from models import Opportunity, Interaction
+from models import Opportunity, Interaction, User
 from datetime import datetime
 
-# Seed Data from your frontend demo
+# Your actual Clerk ID from the dashboard
+CLERK_USER_ID = "user_39iln2zh89jDKdDcBr3x2CuCmdP"
+
+# Seed Data updated to include floating-point values and consistent naming
 SEED_OPPORTUNITIES = [
     {"name": "John Doe", "email": "john@email.com", "status": "Contacted", "value": 1200.0},
     {"name": "Jane Smith", "email": "jane@company.com", "status": "New", "value": 4500.0},
@@ -14,37 +17,54 @@ SEED_OPPORTUNITIES = [
 
 def seed_database():
     with Session(engine) as session:
-        # 1. Check if we already have data to avoid duplicates
-        statement = select(Opportunity)
+        # 1. Create or verify the Clerk User exists in Neon
+        db_user = session.get(User, CLERK_USER_ID)
+        if not db_user:
+            print(f"Creating seed user: {CLERK_USER_ID}")
+            db_user = User(
+                id=CLERK_USER_ID,
+                email="kennonirom@gmail.com",
+                full_name="Kenn Onirom",
+                created_at=datetime.utcnow()
+            )
+            session.add(db_user)
+            session.commit()
+            session.refresh(db_user)
+
+        # 2. Check for existing opportunities to prevent duplicates
+        statement = select(Opportunity).where(Opportunity.user_id == CLERK_USER_ID)
         existing_data = session.exec(statement).first()
         
         if existing_data:
-            print("Database already contains data. Skipping seed.")
+            print("Database already contains opportunities for this user. Skipping seed.")
             return
 
-        print("Seeding opportunities...")
+        print(f"Seeding opportunities for user {CLERK_USER_ID}...")
         
-        # 2. Add Opportunities
+        # 3. Add Opportunities linked to your User ID
         db_opportunities = []
         for opp_data in SEED_OPPORTUNITIES:
-            opp = Opportunity(**opp_data)
+            opp = Opportunity(
+                **opp_data,
+                user_id=CLERK_USER_ID  # This is the critical link you were missing
+            )
             session.add(opp)
             db_opportunities.append(opp)
         
-        # Flush to get IDs for foreign keys
+        # Flush to get primary keys for interactions
         session.flush()
 
-        # 3. Add Sample Interactions (mapping to John Doe)
-        john_doe = db_opportunities[0]
+        # 4. Add Sample Interactions (mapping to the first opportunity)
+        first_opp = db_opportunities[0]
         interactions = [
             Interaction(
-                opportunity_id=john_doe.id,
+                opportunity_id=first_opp.id,
                 type="Phone Call",
                 notes="Client interested in our premium plan. Asked about pricing tiers.",
                 timestamp=datetime.utcnow()
             ),
             Interaction(
-                opportunity_id=john_doe.id,
+                opportunity_id=first_opp.id,
                 type="Email Sent",
                 notes="Sent detailed pricing breakdown with comparison chart.",
                 timestamp=datetime.utcnow()
@@ -55,7 +75,7 @@ def seed_database():
             session.add(interaction)
 
         session.commit()
-        print("Successfully seeded Neon database!")
+        print("Successfully seeded Neon database with user-linked data!")
 
 if __name__ == "__main__":
     seed_database()
