@@ -1,70 +1,66 @@
-import { generateText, Output } from "ai"
-import { z } from "zod"
-import { findOpportunity, getInteractionsByOpportunity } from "@/lib/store"
+// app/api/opportunities/[id]/ai-assist/route.ts
+import { findOpportunity } from "@/lib/store";
 
-const aiAssistSchema = z.object({
-  summary: z.array(z.string()).describe("3 bullet points summarizing the relationship state"),
-  suggestedNextStep: z.string().describe("A specific, actionable next step to take"),
-  urgency: z.string().describe("Low, Medium, or High urgency level"),
-})
+const BACKEND_URL = process.env.BACKEND_API_URL || "http://127.0.0.1:8000";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const opportunity = findOpportunity(id)
-
-  if (!opportunity) {
-    return Response.json({ error: "Opportunity not found" }, { status: 404 })
-  }
-
-  const interactions = getInteractionsByOpportunity(id)
-
-  if (interactions.length === 0) {
-    return Response.json({
-      summary: [
-        "No interactions recorded yet",
-        "This is a new opportunity with no contact history",
-        "Initial outreach is needed",
-      ],
-      suggestedNextStep: "Send an introductory email or make a discovery call to establish first contact",
-      urgency: "Medium",
-    })
-  }
-
-  const interactionHistory = interactions
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((i) => `[${i.type}] ${new Date(i.timestamp).toLocaleDateString()}: ${i.notes}`)
-    .join("\n")
-
-  const prompt = `You are a CRM workflow assistant. Analyze the following opportunity and its interaction history, then provide a strategic summary and recommended next action.
-
-OPPORTUNITY:
-- Name: ${opportunity.name}
-- Email: ${opportunity.email}
-- Status: ${opportunity.status}
-- Value: $${opportunity.value.toLocaleString()}
-- Created: ${new Date(opportunity.created_at).toLocaleDateString()}
-
-INTERACTION HISTORY:
-${interactionHistory}
-
-Based on this data, provide:
-1. Exactly 3 bullet-point summaries of the current relationship state
-2. A specific, actionable next step (e.g., "Send follow-up email with pricing breakdown", "Book a meeting to close the deal")
-3. An urgency level: Low, Medium, or High`
+// TRIGGER NEW ANALYSIS
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
 
   try {
-    const { output } = await generateText({
-      model: "openai/gpt-4o-mini",
-      output: Output.object({ schema: aiAssistSchema }),
-      prompt,
-    })
+    const response = await fetch(
+      `${BACKEND_URL}/opportunities/${id}/strategy`,
+      {
+        method: "GET", // Backend uses @app.get to trigger generation
+        headers: { "Content-Type": "application/json" },
+      },
+    );
 
-    return Response.json(output)
-  } catch (error) {
-    console.error("AI assist error:", error)
-    return Response.json(
-      { error: "Failed to generate AI analysis. Please try again." },
-      { status: 500 }
-    )
+    if (!response.ok) throw new Error("Backend failed to generate strategy");
+    const data = await response.json();
+
+    return Response.json(mapBackendToFrontend(data));
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
+}
+
+// FETCH LATEST FROM DB
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/opportunities/${id}/strategy/latest`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      },
+    );
+
+    if (!response.ok)
+      return Response.json({ error: "No strategy found" }, { status: 404 });
+    const data = await response.json();
+
+    return Response.json(mapBackendToFrontend(data));
+  } catch (error: any) {
+    return Response.json({ error: "Backend unreachable" }, { status: 500 });
+  }
+}
+
+// Helper to keep keys consistent with your Frontend UI
+function mapBackendToFrontend(data: any) {
+  return {
+    summary: data.summary, // This is a string now
+    suggestedNextStep: data.next_step,
+    urgency: data.sentiment, // This is the full string: "HOT - reason..."
+    tacticalAdvice: data.tactical_advice,
+    created_at: data.created_at,
+  };
 }
