@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import select, Session
 from typing import List
+import json
 from google import genai  # Use the new unified SDK
 from database import create_db_and_tables, get_session
 import os  # Essential for API keys
@@ -8,7 +9,7 @@ from models import (
     Opportunity, OpportunityCreate, OpportunityUpdate,
     User, UserCreate, 
     Interaction, InteractionCreate, InteractionUpdate, 
-    ChatRequest, ChatResponse
+    ChatRequest, ChatResponse, SalesStrategy
 )
 
 app = FastAPI()
@@ -102,6 +103,111 @@ def delete_opportunity(opportunity_id: int, session: Session = Depends(get_sessi
     session.delete(db_opp)
     session.commit()
     return {"ok": True, "message": f"Opportunity {opportunity_id} and its interactions deleted"}
+
+
+@app.get("/opportunities/{opportunity_id}/strategy", response_model=SalesStrategy)
+async def get_sales_strategy(
+    opportunity_id: int, 
+    session: Session = Depends(get_session)
+):
+    """
+    Analyzes history, saves a new strategy record to the DB, and returns it.
+    """
+    # 1. Fetch the opportunity
+    db_opp = session.get(Opportunity, opportunity_id)
+    if not db_opp:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+    # 2. Build history context
+    history_logs = ""
+    if not db_opp.interactions:
+        history_logs = "No interactions logged yet."
+    else:
+        for i in db_opp.interactions:
+            history_logs += f"- [{i.timestamp.strftime('%Y-%m-%d')}] {i.type}: {i.notes}\n"
+
+    # 3. Construct Strategy Prompt with JSON instructions
+    prompt = f"""
+    You are an elite Sales Strategist. Analyze the client history and provide a JSON response.
+
+    CLIENT INFO:
+    - Name: {db_opp.name}
+    - Status: {db_opp.status}
+    - Value: ${db_opp.value}
+
+    INTERACTION HISTORY:
+    {history_logs}
+
+    Return ONLY a JSON object with these keys:
+    - summary: 2-3 sentence overview of health.
+    - sentiment: One word (HOT, WARM, or COLD) + reasoning.
+    - next_step: The specific aggressive next move to close.
+    - tactical_advice: Handle the next conversation based on history.
+    """
+
+    try:
+        # 4. Generate Content (Using your preferred Gemini 3 Flash model)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", 
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json"
+            }
+        )
+        
+        if not response.text:
+            raise HTTPException(status_code=500, detail="AI strategy generation failed.")
+
+        # 5. Parse and Save to Database
+        ai_data = json.loads(response.text)
+        
+        new_strategy = SalesStrategy(
+            summary=ai_data["summary"],
+            sentiment=ai_data["sentiment"],
+            next_step=ai_data["next_step"],
+            tactical_advice=ai_data["tactical_advice"],
+            opportunity_id=opportunity_id
+        )
+        
+        session.add(new_strategy)
+        session.commit()
+        session.refresh(new_strategy)
+        
+        return new_strategy
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI/DB Error: {str(e)}")
+
+
+@app.get("/opportunities/{opportunity_id}/strategy/latest", response_model=SalesStrategy)
+def get_latest_sales_strategy(
+    opportunity_id: int, 
+    session: Session = Depends(get_session)
+):
+    """
+    Fetches the single most recent AI strategy for a given opportunity.
+    """
+    # 1. Verify opportunity exists first
+    db_opp = session.get(Opportunity, opportunity_id)
+    if not db_opp:
+        raise HTTPException(status_code=404, detail="Opportunity not found")
+
+    # 2. Query for the latest strategy based on created_at
+    statement = (
+        select(SalesStrategy)
+        .where(SalesStrategy.opportunity_id == opportunity_id)
+        .order_by(SalesStrategy.created_at.desc())
+    )
+    
+    latest_strategy = session.exec(statement).first()
+
+    if not latest_strategy:
+        raise HTTPException(
+            status_code=404, 
+            detail="No strategy has been generated for this opportunity yet."
+        )
+
+    return latest_strategy
 
 # --- INTERACTION ROUTES ---
 @app.get("/interactions", response_model=List[Interaction])

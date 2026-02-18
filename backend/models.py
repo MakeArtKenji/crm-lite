@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 
 # --- USER MODELS ---
 class UserBase(SQLModel):
@@ -13,7 +14,20 @@ class User(UserBase, table=True):
     opportunities: List["Opportunity"] = Relationship(back_populates="user")
 
 class UserCreate(UserBase):
-    pass # In this case, UserCreate still needs the ID because of Clerk
+    pass 
+
+# --- SALES STRATEGY MODEL ---
+class SalesStrategy(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    summary: str
+    sentiment: str 
+    next_step: str
+    tactical_advice: str
+    
+    opportunity_id: int = Field(foreign_key="opportunity.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    opportunity: Optional["Opportunity"] = Relationship(back_populates="strategies")
 
 # --- OPPORTUNITY MODELS ---
 class OpportunityBase(SQLModel):
@@ -33,9 +47,11 @@ class Opportunity(OpportunityBase, table=True):
         back_populates="opportunity", 
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
+    # ADDED THIS RELATIONSHIP HERE
+    strategies: List["SalesStrategy"] = Relationship(back_populates="opportunity")
 
 class OpportunityCreate(OpportunityBase):
-    pass # No ID, created_at, or updated_at here!
+    pass 
 
 class OpportunityUpdate(SQLModel):
     name: Optional[str] = None
@@ -45,7 +61,7 @@ class OpportunityUpdate(SQLModel):
 
 # --- INTERACTION MODELS ---
 class InteractionBase(SQLModel):
-    type: str # "Phone Call" | "Email Sent" | "Meeting Notes" | "Custom Note"
+    type: str 
     notes: str
     opportunity_id: int = Field(foreign_key="opportunity.id")
 
@@ -56,13 +72,13 @@ class Interaction(InteractionBase, table=True):
     opportunity: Optional[Opportunity] = Relationship(back_populates="interactions")
 
 class InteractionCreate(InteractionBase):
-    pass # No ID or timestamp here!
+    pass 
 
 class InteractionUpdate(SQLModel):
     type: Optional[str] = None
     notes: Optional[str] = None
 
-# models.py snippet
+# --- CHAT UTILS ---
 class ChatRequest(SQLModel):
     message: str
 

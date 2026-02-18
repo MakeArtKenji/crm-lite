@@ -36,7 +36,7 @@ export function OpportunityHeader({ opportunity }: Props) {
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-sm text-foreground">
-              {new Date(opportunity.createdAt).toLocaleDateString()}
+              {new Date(opportunity.created_at).toLocaleDateString()}
             </span>
           </div>
         </div>
