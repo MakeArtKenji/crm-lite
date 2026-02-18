@@ -55,6 +55,21 @@ def get_opps(
         statement = statement.where(Opportunity.user_id == user_id)
         
     return session.exec(statement).all()
+    
+
+@app.post("/opportunities", response_model=Opportunity)
+def create_opportunity(opp_data: OpportunityCreate, session: Session = Depends(get_session)):
+    # Check if user exists
+    db_user = session.get(User, opp_data.user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    # Convert OpportunityCreate to Opportunity
+    new_opp = Opportunity.model_validate(opp_data)
+    session.add(new_opp)
+    session.commit()
+    session.refresh(new_opp)
+    return new_opp
 
 
 # --- SECURE INDIVIDUAL FETCH ---
