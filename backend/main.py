@@ -76,39 +76,22 @@ def get_opportunity(
     return db_opp
 
 
-@app.post("/opportunities", response_model=Opportunity)
-def create_opportunity(opp_data: OpportunityCreate, session: Session = Depends(get_session)):
-    # Check if user exists
-    db_user = session.get(User, opp_data.user_id)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    
-    # Convert OpportunityCreate to Opportunity
-    new_opp = Opportunity.model_validate(opp_data)
-    session.add(new_opp)
-    session.commit()
-    session.refresh(new_opp)
-    return new_opp
+@app.get("/opportunities", response_model=List[Opportunity])
+def get_opps(user_id: str, session: Session = Depends(get_session)):
+    # Strictly filtered by user_id
+    statement = select(Opportunity).where(Opportunity.user_id == user_id)
+    return session.exec(statement).all()
 
-@app.patch("/opportunities/{opportunity_id}", response_model=Opportunity)
-def update_opportunity(
-    opportunity_id: int, 
-    opp_data: OpportunityUpdate, 
-    session: Session = Depends(get_session)
-):
-    db_opp = session.get(Opportunity, opportunity_id)
+@app.get("/opportunities/{opportunity_id}", response_model=Opportunity)
+def get_opportunity(opportunity_id: int, user_id: str, session: Session = Depends(get_session)):
+    # SECURE: Checks both ID and ownership
+    statement = select(Opportunity).where(
+        Opportunity.id == opportunity_id, 
+        Opportunity.user_id == user_id
+    )
+    db_opp = session.exec(statement).first()
     if not db_opp:
-        raise HTTPException(status_code=404, detail="Opportunity not found")
-    
-    # Extract only the data provided in the request
-    update_dict = opp_data.model_dump(exclude_unset=True)
-    
-    for key, value in update_dict.items():
-        setattr(db_opp, key, value)
-    
-    session.add(db_opp)
-    session.commit()
-    session.refresh(db_opp)
+        raise HTTPException(status_code=404, detail="Opportunity not found or access denied")
     return db_opp
 
 # --- DELETE OPPORTUNITY ---
