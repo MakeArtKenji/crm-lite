@@ -1,3 +1,4 @@
+// crm-lite/frontend/app/api/opportunities/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -11,11 +12,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Since you are a data analytics guy, you'll eventually want to filter
-    // this on the backend: `${BASE_URL}/opportunities?user_id=${userId}`
-    const response = await fetch(`${BASE_URL}/opportunities`, {
-      cache: "no-store",
-    });
+    // PASS the userId to the backend as a query param
+    const response = await fetch(
+      `${BASE_URL}/opportunities?user_id=${userId}`,
+      {
+        cache: "no-store",
+      },
+    );
 
     if (!response.ok) throw new Error("Failed to fetch opportunities");
 

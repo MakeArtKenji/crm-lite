@@ -1,41 +1,56 @@
-// dashboard/page.tsx
+// app/dashboard/page.tsx
 import { DashboardOverview } from "@/components/dashboard-overview";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
-  // Use your BACKEND_URL directly (e.g., http://127.0.0.1:8000)
+  // 1. Get the userId on the server (Secure/Tamper-proof)
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  // 2. Point directly to FASTAPI
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   try {
-    // Fetch directly from FastAPI
+    /** * 3. Fetch from FastAPI with the privacy filter.
+     * Since we are on the server, we don't need the /api middleman.
+     * We just pass the userId we got from auth() above.
+     */
     const [oppsRes, intsRes] = await Promise.all([
-      fetch(`${BACKEND_URL}/opportunities`, { cache: "no-store" }),
-      fetch(`${BACKEND_URL}/interactions`, { cache: "no-store" }),
+      fetch(`${BACKEND_URL}/opportunities?user_id=${userId}`, {
+        cache: "no-store",
+      }),
+      fetch(`${BACKEND_URL}/interactions`, { cache: "no-store" }), // See note below about filtering interactions
     ]);
 
-    // Validate that we actually got JSON
-    const isJson = (res: Response) =>
-      res.headers.get("content-type")?.includes("application/json");
+    if (!oppsRes.ok || !intsRes.ok) {
+      throw new Error("Backend response was not OK");
+    }
 
-    const opportunities =
-      oppsRes.ok && isJson(oppsRes) ? await oppsRes.json() : [];
+    const opportunities = await oppsRes.json();
+    const interactions = await intsRes.json();
 
-    const interactions =
-      intsRes.ok && isJson(intsRes) ? await intsRes.json() : [];
+    // Since you are a data analytics guy, filter interactions here if
+    // your backend doesn't support ?user_id=${userId} for interactions yet.
+    const userInteractionsCount = interactions.length;
 
     return (
       <DashboardOverview
         opportunities={opportunities}
-        interactionCount={interactions.length}
+        interactionCount={userInteractionsCount}
       />
     );
   } catch (error) {
-    console.error("Critical Connection Error:", error);
+    console.error("Dashboard Fetch Error:", error);
     return (
       <div className="p-10 text-center">
-        <h1 className="text-xl font-bold text-destructive">Backend Offline</h1>
+        <h1 className="text-xl font-bold text-destructive">Connection Error</h1>
         <p className="text-muted-foreground">
-          Make sure your Uvicorn server is running on port 8000.
+          Could not reach the private CRM data server.
         </p>
       </div>
     );

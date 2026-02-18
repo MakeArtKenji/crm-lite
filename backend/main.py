@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import select, Session
-from typing import List
+from typing import List, Optional
 import json
 from google import genai  # Use the new unified SDK
 from database import create_db_and_tables, get_session
@@ -44,18 +44,37 @@ def create_user(user_data: UserCreate, session: Session = Depends(get_session)):
 
 # --- OPPORTUNITY ROUTES ---
 @app.get("/opportunities", response_model=List[Opportunity])
-def get_opps(session: Session = Depends(get_session)):
-    return session.exec(select(Opportunity)).all()
+def get_opps(
+    user_id: Optional[str] = None, # Accept the user_id from the query param
+    session: Session = Depends(get_session)
+):
+    statement = select(Opportunity)
+    
+    # If a user_id is provided, filter the results
+    if user_id:
+        statement = statement.where(Opportunity.user_id == user_id)
+        
+    return session.exec(statement).all()
 
+
+# --- SECURE INDIVIDUAL FETCH ---
 @app.get("/opportunities/{opportunity_id}", response_model=Opportunity)
-def get_opportunity(opportunity_id: int, session: Session = Depends(get_session)):
-    # session.get is the "fast way" to find a single row by primary key
-    db_opp = session.get(Opportunity, opportunity_id)
+def get_opportunity(
+    opportunity_id: int, 
+    user_id: str, # Force passing user_id for security
+    session: Session = Depends(get_session)
+):
+    statement = select(Opportunity).where(
+        Opportunity.id == opportunity_id,
+        Opportunity.user_id == user_id
+    )
+    db_opp = session.exec(statement).first()
     
     if not db_opp:
-        raise HTTPException(status_code=404, detail="Opportunity not found")
+        raise HTTPException(status_code=404, detail="Opportunity not found or access denied")
         
     return db_opp
+
 
 @app.post("/opportunities", response_model=Opportunity)
 def create_opportunity(opp_data: OpportunityCreate, session: Session = Depends(get_session)):

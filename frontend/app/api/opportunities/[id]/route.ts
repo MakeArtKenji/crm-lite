@@ -1,9 +1,9 @@
+// crm-lite/frontend/app/api/opportunities/[id]/route.ts
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-// GET: View specific opportunity
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -12,24 +12,25 @@ export async function GET(
     const { userId } = await auth();
     const { id } = await params;
 
-    if (!userId)
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const response = await fetch(`${BASE_URL}/opportunities/${id}`, {
-      cache: "no-store",
-    });
+    // THE FIX: You MUST append ?user_id=${userId} here
+    const response = await fetch(
+      `${BASE_URL}/opportunities/${id}?user_id=${userId}`,
+      { cache: "no-store" },
+    );
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: "Opportunity not found" },
-        { status: 404 },
-      );
+      // If FastAPI returns 404, it means the ID doesn't exist OR belongs to someone else
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
     }
 
     const opportunity = await response.json();
     return NextResponse.json({ opportunity });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Backend error" }, { status: 500 });
   }
 }
 

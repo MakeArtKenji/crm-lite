@@ -6,6 +6,7 @@ import {
   ClerkProvider,
 } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
+import { UserSync } from "@/components/user-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <UserSync />
             {children}
             <Toaster richColors position="top-right" />
           </ThemeProvider>
